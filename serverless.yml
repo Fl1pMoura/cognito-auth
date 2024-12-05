@@ -1,36 +1,111 @@
-service: live020
-frameworkVersion: '3'
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: fl1pzinn
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: teste-cognito
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: teste-cognito
 
 plugins:
-  - serverless-esbuild
+  - serverless-offline 
 
 package:
-  individually: true
+  individually: true 
+
+build:
+  esbuild:
+    minify: true
+    platform: node
+    target: node20 
+    exclude:
+      - '@aws-sdk/*'
+
 
 provider:
   name: aws
-  region: us-east-1
   runtime: nodejs20.x
+  region: us-east-1
   deploymentMethod: direct
   architecture: arm64
+  environment:
+    COGNITO_CLIENT_ID: !Ref TesteCognitoUserPoolClient
 
-custom:
-  esbuild:
-  bundle: true
-  minify: true
-  sourcemap: false
-  target: node20
-  exclude:
-    - '@aws-sdk/*'
-  define:
-    require.resolve: undefined
-  platform: node
-  concurrency: 10
+resources:
+  Resources:
+    TesteCognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: TesteCognitoUserPool
+        MfaConfiguration: OFF
+        AutoVerifiedAttributes:
+          - email
+        AdminCreateUserConfig:
+          AllowAdminCreateUserOnly: false
+        UsernameAttributes:
+          - email
+        AccountRecoverySetting:
+          RecoveryMechanisms:
+            - Name: verified_email
+              Priority: 1
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: true
+            RequireUppercase: true
+            TemporaryPasswordValidityDays: 3
+        Schema:  
+          - Name: given_name
+            Required: true
+            Mutable: true
+            AttributeDataType: String
+          - Name: family_name
+            Required: true
+            Mutable: true
+            AttributeDataType: String
+    TesteCognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: TesteCognitoUserPoolClient
+        UserPoolId: !Ref TesteCognitoUserPool
+        ExplicitAuthFlows:
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        TokenValidityUnits:
+          AccessToken: hours
+          RefreshToken: hours
+        AccessTokenValidity: 3 # 3 hours
+        RefreshTokenValidity: 720 # 30 days
 
 functions:
-  hello:
-    handler: src/functions/hello.handler
+  signUp:
+    handler: src/functions/signUp.handler
     events:
       - httpApi:
-          method: GET
-          path: /hello
+          method: POST
+          path: /auth/sign-up
+  accountConfirmation:
+    handler: src/functions/accountConfirmation.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/confirmation
+  signIn:
+    handler: src/functions/signIn.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/sign-in
+  refreshToken:
+    handler: src/functions/refreshToken.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/refresh-token
+          
+          
+
+
+
+
+
