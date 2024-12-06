@@ -93,6 +93,14 @@ resources:
         RefreshTokenValidity: 720 # 30 days
 
 functions:
+  cognitoCustomMessage:
+    handler: src/functions/cognitoCustomMessage.handler
+    events:
+      - cognitoUserPool:
+          pool: TesteCognitoUserPool
+          trigger: CustomMessage
+          existing: true
+          forceDeploy: true
   signUp:
     handler: src/functions/signUp.handler
     events:
