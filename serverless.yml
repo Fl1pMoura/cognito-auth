@@ -28,6 +28,14 @@ provider:
   architecture: arm64
   environment:
     COGNITO_CLIENT_ID: !Ref TesteCognitoUserPoolClient
+  httpApi:
+    authorizers:
+        CognitoAuthorizer:
+          type: jwt
+          identitySource: $request.header.Authorization
+          issuerUrl: !GetAtt TesteCognitoUserPool.ProviderURL
+          audience:
+            - !Ref TesteCognitoUserPoolClient
 
 resources:
   Resources:
@@ -102,6 +110,13 @@ functions:
       - httpApi:
           method: POST
           path: /auth/refresh-token
+  profile:
+    handler: src/functions/profile.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /profile
+          authorizer: CognitoAuthorizer
           
           
 
