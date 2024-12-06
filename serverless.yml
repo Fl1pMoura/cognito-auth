@@ -26,8 +26,15 @@ provider:
   region: us-east-1
   deploymentMethod: direct
   architecture: arm64
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: cognito-idp:AdminGetUser
+          Resource: !GetAtt TesteCognitoUserPool.Arn
   environment:
     COGNITO_CLIENT_ID: !Ref TesteCognitoUserPoolClient
+    COGNITO_USER_POOL_ID: !Ref TesteCognitoUserPool
   httpApi:
     authorizers:
         CognitoAuthorizer:
@@ -110,6 +117,18 @@ functions:
       - httpApi:
           method: POST
           path: /auth/refresh-token
+  forgotPassword:
+    handler: src/functions/forgotPassword.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/forgot-password
+  resetPassword:
+    handler: src/functions/resetPassword.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/reset-password
   profile:
     handler: src/functions/profile.handler
     events:
